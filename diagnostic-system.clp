@@ -3,46 +3,56 @@
 ; Purpose: Determine device malfunction by LED color, power status and internal state
 ; ========================================
 
+(deftemplate device
+    "Template: Terminal-device status"
+
+    (slot power 
+        (type SYMBOL)
+        (allowed-symbols on off unknown)
+        (default unknown))
+    (slot led-color 
+        (type SYMBOL)
+        (allowed-symbols red green yellow blank unknown)
+        (default unknown))
+    (slot internal-state 
+        (type SYMBOL)
+        (allowed-symbols ok errfile erraddress errunkn unknown)
+        (default unknown))
+)
+
 (deffunction start ()
-    "Function: Power on the system"
+    "Function: Power on the system, create device fact"
+
     (reset)
+    (assert (device))
     (run)
 )
 
-(deffunction ask-with-validation (?question-str $?allowed-answers)
-    "Function: Ask question about single attribute"
+(deffunction ask-slot-value-with-validation (?template-based-fact ?slot)
+    "Function: Ask question to fill out one slot of the template"
+
+    (bind ?allowed-inputs (deftemplate-slot-allowed-values ?template-based-fact ?slot))
+    (if (eq ?allowed-inputs FALSE)
+    then
+        (printout t "Get allowed inputs: Fail / Slot " ?slot " allowed-values is empty" crlf)
+        (halt)
+    )
+
     (while TRUE
-        (printout t ?question-str " [" ?allowed-answers "]: " crlf)
+        (printout t "What's the status of " ?slot " - " ?allowed-inputs crlf)
         (bind ?user-input (lowcase (read)))
-        (if (member$ ?user-input ?allowed-answers) then
+        (if (member$ ?user-input ?allowed-inputs)
+        then
             (return ?user-input)
         else 
-            (printout t "Validate answer: Fail / Allowed answers are: " ?allowed-answers crlf)
+            (printout t "Validate answer: Fail / Allowed answers are: " ?allowed-inputs crlf)
         )
     )
 )
 
-
-(deftemplate device
-    "Template: Terminal-device status"
-    (slot power (default unknown))
-    (slot led-color (default unknown))
-    (slot internal-state (default unknown))
-)
-
-(deffacts initial-device
-    "Initial facts: Default device fact"
-    (device)
-)
-
-(defrule check-power-status
-    "Rule: Check power status. Is initial"
-    ?dev_addr <- (device (power unknown))
+(defrule check-device-power
+    ?device-id <- (device (power unknown))
     =>
-    (modify ?dev_addr 
-        (power (ask-with-validation "What is the power status for this device?" "on" "off"))
-    )
-    (printout t "Change device state: Success" crlf)
+    (bind ?user-input (ask-slot-value-with-validation device power))
+    (modify ?device-id (power ?user-input))
 )
-
-
