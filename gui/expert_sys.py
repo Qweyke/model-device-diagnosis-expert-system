@@ -1,3 +1,4 @@
+from gui_wrapper import gui_ask, gui_message
 from experta import *
 import sys
 
@@ -19,15 +20,24 @@ class Device(Fact):
 def ask_slot_value_with_validation(slot):
     allowed = Device.allowed_vals.get(slot)
     if not allowed:
-        print(f"Slot {slot} has no allowed values.")
+        gui_message(f"Slot {slot} has no allowed values.")
         sys.exit(1)
 
-    while True:
-        print(f"What's the status of {slot}: {allowed}?")
-        user_input = input(">>> ").lower().strip()
-        if user_input in allowed:
-            return user_input
-        print(f"Validate answer: Fail / Allowed answers are: {allowed}")
+    return gui_ask("Device Status Input", f"Select {slot}:", allowed)
+
+
+# def ask_slot_value_with_validation(slot):
+#     allowed = Device.allowed_vals.get(slot)
+#     if not allowed:
+#         gui_message(f"Slot {slot} has no allowed values.")
+#         sys.exit(1)
+
+#     while True:
+#         gui_message(f"What's the status of {slot}: {allowed}?")
+#         user_input = input(">>> ").lower().strip()
+#         if user_input in allowed:
+#             return user_input
+#         gui_message(f"Validate answer: Fail / Allowed answers are: {allowed}")
 
 
 class DeviceDiagnosisEngine(KnowledgeEngine):
@@ -61,41 +71,41 @@ class DeviceDiagnosisEngine(KnowledgeEngine):
 
     @Rule(Device(power="off"))
     def diagnose_no_power(self):
-        print("Diagnosis: Connect the power supply to device")
+        gui_message("Diagnosis: Connect the power supply to device")
         self.halt()
 
     @Rule(Device(power="on", led_color="none"))
     def diagnose_led_none(self):
-        print(
+        gui_message(
             "Diagnosis: Hardware fault detected - send the board for physical diagnostics"
         )
         self.halt()
 
     @Rule(Device(power="on", led_color="red"))
     def diagnose_led_red(self):
-        print("Diagnosis: CPU malfunction - send the board for CPU reballing")
+        gui_message("Diagnosis: CPU malfunction - send the board for CPU reballing")
         self.halt()
 
     @Rule(Device(power="on", led_color="yellow", internal_state="errfile"))
     def diagnose_led_yellow_errfile(self):
-        print("Diagnosis: Flash error - reflash device with Stable.bin image")
+        gui_message("Diagnosis: Flash error - reflash device with Stable.bin image")
         self.halt()
 
     @Rule(Device(power="on", led_color="yellow", internal_state="erraddress"))
     def diagnose_led_yellow_erraddr(self):
-        print(
+        gui_message(
             "Diagnosis: Bootloader address fault - reflash device with Recovery.bin image"
         )
         self.halt()
 
     @Rule(Device(power="on", led_color="green"))
     def diagnose_led_green_ok(self):
-        print("Diagnosis: Device fully operational - ready for casing")
+        gui_message("Diagnosis: Device fully operational - ready for casing")
         self.halt()
 
     @Rule(Device(power="on", led_color="blue"))
     def diagnose_led_blue(self):
-        print("Diagnosis: Firmware update process detected")
+        gui_message("Diagnosis: Firmware update process detected")
         self.halt()
 
 
